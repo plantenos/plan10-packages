@@ -1,0 +1,83 @@
+# Template file for 'webkit2gtk'
+pkgname=webkit2gtk
+version=2.24.3
+revision=2
+wrksrc="webkitgtk-${version}"
+build_style=cmake
+build_helper="gir"
+configure_args="-DPORT=GTK -DENABLE_GTKDOC=OFF -DCMAKE_LINKER=${PKGINST_CROSS_TRIPLET}-gcc
+ -DUSE_GSTREAMER_GL=OFF -DRUBY_VERSION=2.6 -DENABLE_C_LOOP=$(vopt_if jit OFF ON)
+ -DRUBY_CONFIG_INCLUDE_DIR=${PKGINST_CROSS_BASE}/usr/include/ruby-2.6.0
+ -DENABLE_INTROSPECTION=$(vopt_if gir ON OFF)
+ -DENABLE_WAYLAND_TARGET=$(vopt_if wayland ON OFF)
+ -DENABLE_X11_TARGET=$(vopt_if x11 ON OFF) -DENABLE_JIT=$(vopt_if jit ON OFF)
+ -DENABLE_SAMPLING_PROFILER=$(vopt_if sampling_profiler ON OFF)"
+hostmakedepends="perl python pkg-config gperf flex ruby glib-devel geoclue2
+ $(vopt_if wayland wayland-devel)"
+makedepends="at-spi2-core-devel libjpeg-turbo-devel libpng-devel
+ harfbuzz-devel gst-plugins-base1-devel gst-plugins-bad1-devel sqlite-devel
+ libsoup-devel libxslt-devel gnutls-devel icu-devel enchant-devel
+ dbus-glib-devel libwebp-devel gtk+-devel gtk+3-devel libgudev-devel
+ libsecret-devel ruby-devel geoclue2-devel libnotify-devel hyphen-devel
+ woff2-devel freetype-devel libopenjpeg2-devel
+ $(vopt_if x11 libXt-devel) $(vopt_if jit '' libatomic-devel)
+ $(vopt_if wayland 'MesaLib-devel libxkbcommon-devel wayland-devel wayland-protocols')"
+short_desc="GTK+3 port of the WebKit2 browser engine"
+maintainer="Enno Boland <gottox@plan10.org>"
+license="LGPL-2.1-or-later, BSD-2-Clause"
+homepage="https://webkitgtk.org/"
+distfiles="${homepage}/releases/webkitgtk-${version}.tar.xz"
+checksum=940d746d7e82c357222feb5b3f44c4b201e81df7d81ddca5ca2bf3ae0acf6c51
+
+makedepends+=" qt5-devel"
+
+# ETOOHUGE
+nodebug=1
+
+CXXFLAGS="-Wno-expansion-to-defined -Wno-redundant-move -Wno-deprecated-copy"
+
+# Package build options
+build_options="gir wayland x11 jit sampling_profiler"
+build_options_default="gir wayland x11"
+
+desc_option_jit="Enable JustInTime JS support"
+desc_option_sampling_profiler="Toggle sampling profiler support (disabled on musl)"
+
+case "$PKGINST_TARGET_MACHINE" in
+	aarch64*|arm*|ppc|ppc-musl) configure_args+=" -DUSE_LD_GOLD=0";;
+esac
+
+# JIT conflicts with sampling_profiler
+case "$PKGINST_TARGET_MACHINE" in
+	i686*|ppc*|mips*|arm*) ;;
+	*-musl) build_options_default+=" jit" ;;
+	*) build_options_default+=" jit sampling_profiler" ;;
+esac
+
+pre_configure() {
+	case "$PKGINST_TARGET_MACHINE" in
+	armv[56]*|ppc|ppc-musl) # Add -latomic to the targets
+		find -name "CMakeLists.txt" -exec sed -i "{}" \
+		-e "/target_link_libraries/s/)/ atomic)/" \;
+		;;
+	esac
+}
+
+post_install() {
+	vlicense Source/WebCore/LICENSE-APPLE
+	vlicense Source/WebCore/LICENSE-LGPL-2.1
+	vlicense Source/WebCore/LICENSE-LGPL-2
+}
+
+webkit2gtk-devel_package() {
+	depends="gtk+3-devel libsoup-devel ${sourcepkg}>=${version}_${revision}"
+	short_desc+=" - development files"
+	pkg_install() {
+		vmove usr/include
+		vmove usr/lib/pkgconfig
+		if [ "$build_option_gir" ]; then
+			vmove usr/share/gir-1.0
+		fi
+		vmove "usr/lib/*.so"
+	}
+}

@@ -1,0 +1,5 @@
+PKGINST_TARGET_CFLAGS="-march=armv7-a -mfpu=vfpv3 -mfloat-abi=hard"
+PKGINST_TARGET_CXXFLAGS="$PKGINST_TARGET_CFLAGS"
+PKGINST_TARGET_FFLAGS=""
+PKGINST_TRIPLET="armv7l-unknown-linux-gnueabihf"
+PKGINST_RUST_TARGET="armv7-unknown-linux-gnueabihf"

@@ -1,0 +1,7 @@
+case "${ACTION}" in
+post)
+    opt/brother/Printers/dcp197c/cupswrapper/cupswrapper.plan10 -i
+    chmod 755 opt/brother/Printers/dcp197c/cupswrapper
+    ;;
+esac
+

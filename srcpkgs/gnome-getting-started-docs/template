@@ -1,0 +1,14 @@
+# Template file for 'gnome-getting-started-docs'
+pkgname=gnome-getting-started-docs
+version=3.32.2
+revision=1
+archs=noarch
+build_style=gnu-configure
+hostmakedepends="gnome-doc-utils intltool itstool pkg-config"
+short_desc="Getting Started documentation for GNOME"
+maintainer="Enno Boland <gottox@plan10.org>"
+license="CC-BY-SA-3.0"
+homepage="https://gitlab.gnome.org/GNOME/gnome-getting-started-docs"
+#changelog="https://gitlab.gnome.org/GNOME/gnome-getting-started-docs/raw/master/NEWS"
+distfiles="${GNOME_SITE}/${pkgname}/${version%.*}/${pkgname}-${version}.tar.xz"
+checksum=98af5c388808a81334806f3c69bacb3e520f6a5d46ffd61a7b307f5a8b2193ec

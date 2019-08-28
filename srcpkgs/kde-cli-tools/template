@@ -1,0 +1,24 @@
+# Template file for 'kde-cli-tools'
+pkgname=kde-cli-tools
+version=5.16.4
+revision=1
+build_style=cmake
+configure_args="-DBUILD_TESTING=OFF"
+hostmakedepends="extra-cmake-modules pkg-config"
+makedepends="kactivities5-devel kcmutils-devel kdelibs4support-devel
+ kdesu-devel plasma-workspace-devel"
+depends="xdg-utils"
+short_desc="KDE CLI tools"
+maintainer="John <johnz@posteo.net>"
+license="LGPL-2.1-or-later, GPL-2.0-or-later"
+homepage="https://cgit.kde.org/kde-cli-tools.git"
+distfiles="${KDE_SITE}/plasma/${version}/${pkgname}-${version}.tar.xz"
+checksum=56c7c2566217704a9d613757767c3b8ee8d1bc4601b9414a44acb50aaaaedc0d
+
+if [ "$CROSS_BUILD" ]; then
+	hostmakedepends+=" kdoctools kcoreaddons python qt5-host-tools qt5-qmake"
+fi
+
+post_install() {
+	ln -sf ../lib/libexec/kf5/kdesu ${DESTDIR}/usr/bin
+}

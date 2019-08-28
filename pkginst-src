@@ -1,0 +1,916 @@
+#!/bin/bash
+# vim: set ts=4 sw=4 et:
+
+print_cross_targets() {
+    local f
+    for f in common/cross-profiles/*.sh; do
+        f=${f%.sh}; f=${f##*/}; printf "\t$f\n"
+    done
+}
+
+usage() {
+    cat << _EOF
+$PROGNAME: [options] <target> [arguments]
+
+Targets: (only one may be specified)
+
+binary-bootstrap [arch]
+    Install bootstrap packages from host repositories into <masterdir>.
+    If the optional 'arch' argument is set, it will install bootstrap packages
+    from this architecture, and its required pkginst utilities. The <masterdir>
+    will be initialized for chroot operations.
+
+bootstrap
+    Build and install from source the bootstrap packages into <masterdir>.
+
+bootstrap-update
+    Updates bootstrap packages with latest versions available from registered
+    repositories in the PKGINST configuration file.
+
+consistency-check
+    Runs a consistency check on all packages
+
+chroot
+    Enter to the chroot in <masterdir>.
+
+clean-repocache
+    Removes obsolete packages from <hostdir>/repocache.
+
+fetch <pkgname>
+    Download package source distribution file(s).
+
+extract <pkgname>
+    Extract package source distribution file(s) into the build directory.
+    By default set to <masterdir>/builddir.
+
+patch <pkgname>
+    Patch the package sources and perform other operations required to
+    prepare a package for configuring and building
+
+configure <pkgname>
+    Configure a package (fetch + extract + patch + configure).
+
+build <pkgname>
+    Build package source (fetch + extract + patch + configure + build).
+
+check <pkgname>
+    Run the package check(s) after building the package source.
+
+install <pkgname>
+    Install target package into <destdir> but not building the binary package
+    and not removing build directory for inspection purposes.
+
+pkg <pkgname>
+    Build binary package for <pkgname> and all required dependencies.
+
+clean [pkgname]
+    Removes auto dependencies, cleans up <masterdir>/builddir and <masterdir>/destdir.
+    If <pkgname> argument is specified, package files from <masterdir>/destdir and its
+    build directory in <masterdir>/buiddir are removed.
+
+list
+    Lists installed packages in <masterdir>.
+
+remove <pkgname>
+    Remove target package from <destdir>. If <pkgname>-<version> is not matched
+    from build template nothing is removed.
+
+remove-autodeps
+    Removes all package dependencies that were installed automatically.
+
+purge-distfiles
+    Removes all obsolete distfiles in <hostdir>/sources.
+
+show <pkgname>
+    Show information for the specified package.
+
+show-avail <pkgname>
+    Returns 0 if package can be built for the given architecture,
+    any other error otherwise.
+
+show-build-deps <pkgname>
+    Show required build dependencies for <pkgname>.
+
+show-deps <pkgname>
+    Show required run-time dependencies for <pkgname>. Package must be
+    installed into destdir.
+
+show-files <pkgname>
+    Show files installed by <pkgname>. Package must be installed into destdir.
+
+show-hostmakedepends <pkgname>
+    Show required host build dependencies for <pkgname>.
+
+show-makedepends <pkgname>
+    Show required target build dependencies for <pkgname>.
+
+show-options <pkgname>
+    Show available build options by <pkgname>.
+
+show-shlib-provides <pkgname>
+    Show list of provided shlibs for <pkgname>. Package must be installed into destdir.
+
+show-shlib-requires <pkgname>
+    Show list of required shlibs for <pkgname>. Package must be installed into destdir.
+
+show-var <var>
+    Prints the value of <var> if it's defined in pkginst-src.
+
+show-repo-updates
+    Prints the list of outdated packages in PKGINST repositories.
+
+show-sys-updates
+    Prints the list of outdated packages in your system.
+
+sort-dependencies <pkg> <pkgN+1> ...
+    Given a list of packages specified as additional arguments, a sorted dependency
+    list will be returned to stdout.
+
+update-bulk
+    Rebuilds all packages in the system repositories that are outdated.
+
+update-sys
+    Rebuilds all packages in your system that are outdated and updates them.
+
+update-check <pkgname>
+    Check upstream site of <pkgname> for new releases.
+
+update-hash-cache
+    Update the hash cache with existing source distfiles.
+
+zap
+    Removes a masterdir but preserving ccache, distcc and host directories.
+
+Options:
+
+-a  <target>
+    Cross compile packages for this target machine. Supported targets:
+
+$(print_cross_targets)
+
+-C  Do not remove build directory, automatic dependencies and
+    package destdir after successful install.
+
+-E  If a binary package exists in a local repository for the target package,
+    do not try to build it, exit immediately.
+
+-f  Force running the specified stage (configure/build/install/pkg)
+    even if it ran successfully.
+
+-G  Enable PKGINST_USE_GIT_REVS (see etc/defaults.conf for more information).
+
+-Q  Enable running the check stage.
+
+-g  Enable building -dbg packages with debugging symbols.
+
+-H  <hostdir>
+    Absolute path to a directory to be bind mounted at <masterdir>/host.
+    The host directory stores binary packages, sources and package dependencies
+    downloaded from remote repositories.
+    If unset defaults to plan10-packages/hostdir.
+
+-h  Usage output.
+
+-I  Ignore required dependencies, useful for extracting/fetching sources.
+
+-j  Number of parallel build jobs to use when building packages.
+
+-L  Disable ASCII colors.
+
+-m  <masterdir>
+    Absolute path to a directory to be used as masterdir.
+    The masterdir is the main directory to build/store/compile packages.
+    If unset defaults to plan10-packages/masterdir.
+
+-N  Disable use of remote repositories to resolve dependencies.
+
+-o  <opt,~opt2,...>
+    Enable or disable (prefixed with ~) package build options. Note this overrides
+    options set via PKGINST_PKG_OPTIONS from 'etc/conf'. This effectively has the same
+    effect than setting 'PKGINST_PKG_OPTIONS_<pkgname>' in 'etc/conf'.
+    Supported options can be shown with the 'show-options' target.
+
+-r  <repo>
+    Use an alternative local repository to store generated binary packages.
+    If unset defaults to <hostdir>/binpkgs. If set the binpkgs will
+    be stored into <hostdir>/binpkgs/<repo>.
+    This alternative repository will also be used to resolve dependencies
+    with highest priority order than others.
+
+-t  Create a temporary masterdir to not pollute the current one. Note that
+    the existing masterdir must be fully populated with binary-bootstrap first.
+    Once the target has finished, this temporary masterdir will be removed.
+    This flag requires pkginst-uchroot(1).
+
+_EOF
+}
+
+check_reqhost_utils() {
+    local broken
+
+    [ "$IN_CHROOT" ] && return 0
+
+    for f in ${REQHOST_UTILS}; do
+        if ! command -v ${f} &>/dev/null; then
+            echo "${f} is missing in your system, can't continue!" 1>&2
+            broken=1
+        fi
+    done
+    [ "$broken" ] && exit 1
+    [ -z "$1" ] && return 0
+
+    for f in ${REQHOST_UTILS_BOOTSTRAP}; do
+        if ! command -v ${f} &>/dev/null; then
+            echo "${f} is missing in your system, can't continue!" 1>&2
+            broken=1
+        fi
+    done
+    [ "$broken" ] && exit 1
+}
+
+check_build_requirements() {
+    local found
+
+    case "$PKGINST_TARGET" in
+        *bootstrap*) found=1;;
+        *) ;;
+    esac
+    if [ -z "$found" ]; then
+        pkginst-uhelper cmpver "$PKGINST_VERSION" "$PKGINST_VERSION_REQ"
+        if [ $? -eq 255 ]; then
+            echo "ERROR: requires pkginst>=${PKGINST_VERSION_REQ}" 1>&2
+            echo "Bootstrap packages must be updated with 'pkginst-src bootstrap-update'" 1>&2
+            exit 1
+        fi
+    fi
+}
+
+chroot_check() {
+    if [ -f $PKGINST_MASTERDIR/.pkginst_chroot_init -o "$PKGINST_CHROOT_CMD" = "ethereal" ]; then
+        export CHROOT_READY=1
+    fi
+}
+
+check_native_arch() {
+    if [ "$CHROOT_READY" ]; then
+        if [ -s $PKGINST_MASTERDIR/.pkginst_chroot_init ]; then
+            export PKGINST_ARCH=$(<$PKGINST_MASTERDIR/.pkginst_chroot_init)
+        else
+            export PKGINST_ARCH=$(pkginst-uhelper arch)
+        fi
+    else
+        LDD=$(ldd --version 2>&1|head -1)
+        if [[ $LDD == *musl* ]]; then
+            export PKGINST_ARCH=${PKGINST_MACHINE%-musl}-musl
+        else
+            # PKGINST_ARCH == $(uname -m)
+            export PKGINST_ARCH=$(uname -m)
+        fi
+    fi
+}
+
+install_bbootstrap() {
+    [ "$CHROOT_READY" ] && return
+    if [ "$1" = "bootstrap" ]; then
+        unset PKGINST_TARGET_PKG PKGINST_INSTALL_ARGS
+    else
+        PKGINST_TARGET_PKG="$1"
+    fi
+    [ "$PKGINST_SKIP_REMOTEREPOS" ] && unset PKGINST_INSTALL_ARGS
+    # binary bootstrap
+    msg_normal "Installing bootstrap from binary package repositories...\n"
+    # PKGINST_TARGET_PKG == arch
+    if [ "$PKGINST_TARGET_PKG" ]; then
+        _bootstrap_arch="env PKGINST_TARGET_ARCH=$PKGINST_TARGET_PKG"
+        if [ "${PKGINST_TARGET_PKG}" != "${PKGINST_TARGET_PKG#*-}" ]; then
+            _subarch="-${PKGINST_TARGET_PKG#*-}"
+        fi
+    fi
+    mkdir -p $PKGINST_MASTERDIR/var/db/pkginst/keys
+    cd $PKGINST_MASTERDIR
+    cp -f $PKGINST_COMMONDIR/repo-keys/*.plist $PKGINST_MASTERDIR/var/db/pkginst/keys
+    ${_bootstrap_arch} $PKGINST_INSTALL_CMD ${PKGINST_INSTALL_ARGS:+-S $PKGINST_INSTALL_ARGS} -y base-chroot${_subarch}
+    if [ $? -ne 0 ]; then
+        msg_error "Failed to install bootstrap packages!\n"
+    fi
+    # Reconfigure base-files to create dirs/symlinks.
+    if pkginst-query -r $PKGINST_MASTERDIR base-files &>/dev/null; then
+        PKGINST_ARCH=$PKGINST_TARGET_PKG pkginst-reconfigure -r $PKGINST_MASTERDIR -f base-files &>/dev/null
+    fi
+
+    msg_normal "Installed bootstrap successfully!\n"
+    chroot_prepare $PKGINST_TARGET_PKG || msg_error "Failed to initialize chroot!\n"
+    chroot_check
+    chroot_handler clean
+}
+
+reconfigure_bootstrap_pkgs() {
+    local statefile="$PKGINST_MASTERDIR/.pkginst_chroot_configured"
+    local pkgs="glibc-locales ca-certificates"
+    [ -z "$IN_CHROOT" -o -e $statefile ] && return 0
+    # Reconfigure ca-certificates.
+    msg_normal "Reconfiguring bootstrap packages...\n"
+    for f in ${pkgs}; do
+        if pkginst-query -r $PKGINST_MASTERDIR $f &>/dev/null; then
+            pkginst-reconfigure -r $PKGINST_MASTERDIR -f $f
+        fi
+    done
+    touch -f $statefile
+}
+
+bootstrap_update() {
+    [ -z "$CHROOT_READY" ] && return
+    remove_pkg_autodeps
+    msg_normal "pkginst-src: cleaning up masterdir...\n"
+    rm -rf $PKGINST_MASTERDIR/builddir $PKGINST_MASTERDIR/destdir
+    msg_normal "pkginst-src: updating $PKGINST_MASTERDIR ...\n"
+    ${PKGINST_INSTALL_CMD} ${PKGINST_INSTALL_ARGS} -Syu
+    return $?
+}
+
+masterdir_zap() {
+    for f in bin boot builddir destdir dev etc home lib lib32 lib64 mnt \
+        opt proc root run sbin sys tmp usr var host media pkginst \
+        plan10-packages .pkginst_chroot_init .pkginst_chroot_configured; do
+        if [ -d "$PKGINST_MASTERDIR/$f" ]; then
+            echo "Removing directory $PKGINST_MASTERDIR/$f ..."
+            rm -rf $PKGINST_MASTERDIR/$f
+        elif [ -h "$PKGINST_MASTERDIR/$f" ]; then
+            echo "Removing link $PKGINST_MASTERDIR/$f ..."
+            rm -f $PKGINST_MASTERDIR/$f
+        elif [ -f "$PKGINST_MASTERDIR/$f" ]; then
+            echo "Removing file $PKGINST_MASTERDIR/$f ..."
+            rm -f $PKGINST_MASTERDIR/$f
+        fi
+    done
+    echo "$PKGINST_MASTERDIR masterdir cleaned up."
+}
+
+exit_func() {
+    wait
+    if [ "$sourcepkg" ]; then
+        remove_pkg $PKGINST_CROSS_BUILD
+    fi
+    if [ -z "$IN_CHROOT" ]; then
+        msg_red "pkginst-src: a failure has ocurred! exiting...\n"
+    fi
+    exit 2
+}
+
+read_pkg() {
+    if [ -z "${PKGINST_TARGET_PKG}" ]; then
+        [ ! -r ./template ] && msg_error "missing build template in $(pwd).\n"
+        PKGINST_TARGET_PKG=${PWD##*/}
+    fi
+    setup_pkg "$PKGINST_TARGET_PKG" "$PKGINST_CROSS_BUILD" "$1"
+}
+
+setup_distfiles_mirror() {
+    local mirror scheme path
+
+    # Scheme file:// mirror locations only work with uchroot or proot
+    for mirror in $PKGINST_DISTFILES_MIRROR; do
+        scheme="file"
+        if [[ "$mirror" == *://* ]]; then
+            scheme="${mirror%%://*}"
+            path="${mirror#${scheme}://}"
+        else
+            path="$mirror"
+        fi
+        [ "$scheme" != "file" ] && continue
+        if [ "$PKGINST_CHROOT_CMD" == "uchroot" -o "$PKGINST_CHROOT_CMD" == "proot" ]; then
+            if [ ! -d "$path" ]; then
+                msg_warn "Invalid path in PKGINST_DISTFILES_MIRROR ($mirror)\n"
+                continue
+            fi
+            mkdir -p "$PKGINST_MASTERDIR/$path"
+            PKGINST_CHROOT_CMD_ARGS+=" -b $path:$path"
+        else
+            msg_warn "File URLs ($mirror) don't work with '$PKGINST_CHROOT_CMD'\n"
+        fi
+    done
+}
+
+#
+# main()
+#
+readonly PROGNAME="${0##*/}"
+readonly PKGINST_VERSION_REQ="0.55"
+PKGINST_VERSION=$(pkginst-uhelper -V)
+PKGINST_VERSION=${PKGINST_VERSION%%API*}
+PKGINST_VERSION=${PKGINST_VERSION##*:}
+readonly PKGINST_SRC_VERSION="113"
+export PKGINST_MACHINE=$(pkginst-uhelper -C /dev/null arch)
+
+PKGINST_OPTIONS=
+PKGINST_OPTSTRING="1a:CEfgGhH:iIj:Lm:No:qQr:tV"
+
+# Preprocess arguments in order to allow options before and after PKGINST_TARGET.
+eval set -- $(getopt "$PKGINST_OPTSTRING" "$@");
+
+while getopts "$PKGINST_OPTSTRING" opt; do
+    case $opt in
+        1) export PKGINST_BUILD_ONLY_ONE_PKG=yes; PKGINST_OPTIONS+=" -1";;
+        a) export PKGINST_CROSS_BUILD="$OPTARG"; PKGINST_OPTIONS+=" -a $OPTARG";;
+        C) export PKGINST_KEEP_ALL=1; PKGINST_OPTIONS+=" -C";;
+        E) export PKGINST_BINPKG_EXISTS=1; PKGINST_OPTIONS+=" -E";;
+        f) export PKGINST_BUILD_FORCEMODE=1; PKGINST_OPTIONS+=" -f";;
+        G) export PKGINST_USE_GIT_REVS=1; PKGINST_OPTIONS+=" -G";;
+        g) export PKGINST_DEBUG_PKGS=1; PKGINST_OPTIONS+=" -g";;
+        H) export PKGINST_HOSTDIR="$(readlink -f $OPTARG 2>/dev/null)"; PKGINST_OPTIONS+=" -H $PKGINST_HOSTDIR";;
+        h) usage && exit 0;;
+        i) export PKGINST_INFORMATIVE_RUN=1; PKGINST_OPTIONS+=" -i";;
+        I) export PKGINST_SKIP_DEPS=1; PKGINST_OPTIONS+=" -I";;
+        j) export PKGINST_MAKEJOBS="$OPTARG"; PKGINST_OPTIONS+=" -j $OPTARG";;
+        L) export NOCOLORS=1; PKGINST_OPTIONS+=" -L";;
+        m) export PKGINST_MASTERDIR=$(readlink -f $OPTARG 2>/dev/null); PKGINST_OPTIONS+=" -m $PKGINST_MASTERDIR";;
+        N) export PKGINST_SKIP_REMOTEREPOS=1; PKGINST_OPTIONS+=" -N";;
+        o) export PKGINST_PKG_OPTIONS="$OPTARG"; PKGINST_OPTIONS+=" -o $OPTARG";;
+        q) export PKGINST_QUIET=1; PKGINST_OPTIONS+=" -q";;
+        Q) export PKGINST_CHECK_PKGS=1; PKGINST_OPTIONS+=" -Q";;
+        r) export PKGINST_ALT_REPOSITORY="$OPTARG"; PKGINST_OPTIONS+=" -r $OPTARG";;
+        t) export PKGINST_TEMP_MASTERDIR=1; PKGINST_OPTIONS+=" -t -C";;
+        V) echo "pkginst-src-$PKGINST_SRC_VERSION $(pkginst-uhelper -V)" && exit 0;;
+        --) shift; break;;
+    esac
+done
+shift $(($OPTIND - 1))
+
+[ $# -eq 0 ] && usage && exit 1
+
+# Check if stdout is a tty; if false disable colors.
+test -t 1 || export NOCOLORS=1
+# http://no-color.org
+if [ "${NO_COLOR+x}" ]; then
+    export NOCOLORS=1
+fi
+
+# sane umask
+umask 022
+
+#
+# Check for required utilities in host system.
+#
+# Required utilities in host system for the bootstrap target.
+readonly REQHOST_UTILS_BOOTSTRAP="make gawk bash bison sed gcc g++ msgfmt makeinfo \
+    perl tar xz gzip bzip2 patch flex automake libtool pkg-config"
+
+# Required utilities in host system for chroot ops.
+readonly REQHOST_UTILS="pkginst-install pkginst-query pkginst-rindex pkginst-uhelper \
+    pkginst-reconfigure pkginst-remove pkginst-create pkginst-uchroot pkginst-uunshare"
+
+check_reqhost_utils
+
+#
+# Set PKGINST_CONFIG_FILE, PKGINST_DISTDIR, PKGINST_MASTERDIR
+# and PKGINST_HOSTDIR.
+#
+if [ "$IN_CHROOT" ]; then
+    readonly PKGINST_CONFIG_FILE=/etc/pkginst/pkginst-src.conf
+    readonly PKGINST_DISTDIR=/plan10-packages
+    readonly PKGINST_MASTERDIR=/
+    readonly PKGINST_HOSTDIR=/host
+else
+    _distdir="$(readlink -f ${0%/*})"
+    if [ "${_distdir}" = "." ]; then
+        readonly PKGINST_DISTDIR="$(pwd -P)"
+    else
+        readonly PKGINST_DISTDIR="${_distdir}"
+    fi
+    # Read defaults and then the local configuration file
+    if [ -f $PKGINST_DISTDIR/etc/defaults.conf ]; then
+        . $PKGINST_DISTDIR/etc/defaults.conf
+    fi
+    if [ -s $PKGINST_DISTDIR/etc/conf ]; then
+        # Read user configuration first...
+        readonly PKGINST_CONFIG_FILE=$PKGINST_DISTDIR/etc/conf
+    elif [ -s $HOME/.pkginst-src.conf ]; then
+        # ... fallback to ~/.pkginst-src.conf otherwise.
+        readonly PKGINST_CONFIG_FILE=$HOME/.pkginst-src.conf
+    fi
+fi
+# Read settings from config file
+[ -s "$PKGINST_CONFIG_FILE" ] && . $PKGINST_CONFIG_FILE &>/dev/null
+
+# if PKGINST_MASTERDIR unset, defaults to $PKGINST_DISTDIR/masterdir.
+: ${PKGINST_MASTERDIR:=$PKGINST_DISTDIR/masterdir}
+[ ! -d $PKGINST_MASTERDIR ] &&  mkdir -p $PKGINST_MASTERDIR
+
+# if PKGINST_HOSTDIR unset, defaults to $PKGINST_DISTDIR/hostdir.
+: ${PKGINST_HOSTDIR:=$PKGINST_DISTDIR/hostdir}
+[ ! -d $PKGINST_HOSTDIR ] && mkdir -p $PKGINST_HOSTDIR
+
+if [ -d "$PKGINST_MASTERDIR" -a ! -w "$PKGINST_MASTERDIR" ]; then
+    echo "ERROR: can't write to masterdir $PKGINST_MASTERDIR." 1>&2
+    exit 1
+fi
+
+# Try using chroot-git then git from the host system
+if command -v chroot-git &>/dev/null; then
+    PKGINST_GIT_CMD=$(command -v chroot-git)
+elif command -v git &>/dev/null; then
+    PKGINST_GIT_CMD=$(command -v git)
+else
+    echo "neither chroot-git or git are available in your system!" 1>&2
+    exit 1
+fi
+readonly PKGINST_GIT_CMD
+
+if [ -n "$PKGINST_HOSTDIR" ]; then
+    export PKGINST_REPOSITORY=$PKGINST_HOSTDIR/binpkgs
+    readonly PKGINST_SRCDISTDIR=$PKGINST_HOSTDIR/sources
+else
+    export PKGINST_REPOSITORY=$PKGINST_MASTERDIR/host/binpkgs
+    readonly PKGINST_SRCDISTDIR=$PKGINST_MASTERDIR/host/sources
+fi
+
+# Set PKGINST_REPOSITORY to our current branch.
+if [ -z "$PKGINST_ALT_REPOSITORY" ]; then
+    pushd "$PWD" &>/dev/null
+    cd $PKGINST_DISTDIR
+    _gitbranch="$($PKGINST_GIT_CMD symbolic-ref --short HEAD 2>/dev/null)"
+    if [ "${_gitbranch}" -a "${_gitbranch}" != "master" ]; then
+        export PKGINST_ALT_REPOSITORY="${_gitbranch}"
+        export PKGINST_REPOSITORY="${PKGINST_REPOSITORY}/${_gitbranch}"
+     fi
+     popd &>/dev/null
+else
+    export PKGINST_REPOSITORY="${PKGINST_REPOSITORY}/${PKGINST_ALT_REPOSITORY}"
+fi
+
+readonly PKGINST_SRCPKGDIR=$PKGINST_DISTDIR/srcpkgs
+readonly PKGINST_COMMONDIR=$PKGINST_DISTDIR/common
+readonly PKGINST_SHUTILSDIR=$PKGINST_COMMONDIR/pkginst-src/shutils
+readonly PKGINST_TRIGGERSDIR=$PKGINST_SRCPKGDIR/pkginst-triggers/files
+readonly PKGINST_CROSSPFDIR=$PKGINST_COMMONDIR/cross-profiles
+readonly PKGINST_BUILDSTYLEDIR=$PKGINST_COMMONDIR/build-style
+readonly PKGINST_LIBEXECDIR=$PKGINST_COMMONDIR/pkginst-src/libexec
+readonly PKGINST_BUILDHELPERDIR=$PKGINST_COMMONDIR/build-helper
+
+if [ "$IN_CHROOT" ]; then
+    readonly PKGINST_UHELPER_CMD="pkginst-uhelper"
+    readonly PKGINST_INSTALL_CMD="pkginst-install --repository=$PKGINST_REPOSITORY"
+    readonly PKGINST_QUERY_CMD="pkginst-query --repository=$PKGINST_REPOSITORY"
+    readonly PKGINST_RECONFIGURE_CMD="pkginst-reconfigure"
+    readonly PKGINST_REMOVE_CMD="pkginst-remove"
+    readonly PKGINST_CHECKVERS_CMD="pkginst-checkvers --repository=$PKGINST_REPOSITORY"
+    readonly PKGINST_DESTDIR=/destdir
+    readonly PKGINST_BUILDDIR=/builddir
+else
+    readonly PKGINST_UHELPER_CMD="pkginst-uhelper -r $PKGINST_MASTERDIR"
+    readonly PKGINST_INSTALL_CMD="pkginst-install -c $PKGINST_HOSTDIR/repocache --repository=$PKGINST_REPOSITORY -r $PKGINST_MASTERDIR"
+    readonly PKGINST_QUERY_CMD="pkginst-query -c $PKGINST_HOSTDIR/repocache --repository=$PKGINST_REPOSITORY -r $PKGINST_MASTERDIR"
+    readonly PKGINST_RECONFIGURE_CMD="pkginst-reconfigure -r $PKGINST_MASTERDIR"
+    readonly PKGINST_REMOVE_CMD="pkginst-remove -r $PKGINST_MASTERDIR"
+    readonly PKGINST_CHECKVERS_CMD="pkginst-checkvers --repository=$PKGINST_REPOSITORY"
+    readonly PKGINST_DESTDIR=$PKGINST_MASTERDIR/destdir
+    readonly PKGINST_BUILDDIR=$PKGINST_MASTERDIR/builddir
+fi
+readonly PKGINST_RINDEX_CMD="pkginst-rindex"
+readonly PKGINST_FETCH_CMD="pkginst-fetch"
+readonly PKGINST_DIGEST_CMD="pkginst-digest"
+readonly PKGINST_CMPVER_CMD="pkginst-uhelper cmpver"
+
+readonly PKGINST_TARGET="$1"
+if [ "$2" ]; then
+    PKGINST_TARGET_PKG="${2##*/}"
+fi
+
+# Check for CHROOT_READY and set up PKGINST_ARCH environment var for pkginst.
+chroot_check
+check_native_arch
+
+# test if to use linux32 for 32-bit masterdirs in 64-bit environments
+# x86_64, ppc64 (BE) and aarch64 are capable of this, others are not
+linux32_check() {
+    local hostarch="$1"
+    local tgtarch="$2"
+    case "$hostarch" in
+        x86_64*) if [[ "$tgtarch" == i686* ]]; then return 0; fi ;;
+        ppc64le*) return 1 ;;
+        ppc64*)
+            case "$tgtarch" in
+                ppc64*) return 1 ;;
+                ppc*) return 0 ;;
+            esac
+            ;;
+        aarch64*) if [[ "$tgtarch" == armv* ]]; then return 0; fi ;;
+    esac
+    return 1
+}
+
+# Reconfigure pkgs for 32bit on 64-bit systems and reexec itself.
+if [ -z "$PKGINST_REINIT" -a -s $PKGINST_MASTERDIR/.pkginst_chroot_init ]; then
+    export PKGINST_ARCH=${PKGINST_ARCH:-$(<$PKGINST_MASTERDIR/.pkginst_chroot_init)}
+    if linux32_check "$PKGINST_MACHINE" "$PKGINST_ARCH"; then
+        # reconfigure pkgs via linux32
+        linux32 pkginst-reconfigure -r ${PKGINST_MASTERDIR} -a &>/dev/null
+        # reexec itself via linux32
+        export PKGINST_REINIT=1
+        exec linux32 $0 ${PKGINST_OPTIONS} $@
+    fi
+fi
+if [ "$PKGINST_ARCH" ]; then
+    export PKGINST_MACHINE=$PKGINST_ARCH
+fi
+# At this point if PKGINST_TARGET_MACHINE isn't defined we assume
+# it's a native build.
+if [ -z "$PKGINST_TARGET_MACHINE" ]; then
+        export PKGINST_TARGET_MACHINE=$PKGINST_MACHINE
+fi
+
+export PKGINST_SHUTILSDIR PKGINST_CROSSPFDIR PKGINST_TRIGGERSDIR \
+    PKGINST_SRCPKGDIR PKGINST_COMMONDIR PKGINST_BUILDDIR \
+    PKGINST_REPOSITORY PKGINST_ALT_REPOSITORY PKGINST_SRCDISTDIR PKGINST_DIGEST_CMD \
+    PKGINST_UHELPER_CMD PKGINST_INSTALL_CMD PKGINST_QUERY_CMD PKGINST_BUILD_ONLY_ONE_PKG \
+    PKGINST_RINDEX_CMD PKGINST_RECONFIGURE_CMD PKGINST_REMOVE_CMD PKGINST_CHECKVERS_CMD \
+    PKGINST_CMPVER_CMD PKGINST_FETCH_CMD PKGINST_VERSION PKGINST_BUILDSTYLEDIR \
+    PKGINST_CPPFLAGS PKGINST_CFLAGS PKGINST_CXXFLAGS PKGINST_FFLAGS PKGINST_LDFLAGS \
+    PKGINST_MAKEJOBS PKGINST_BUILD_FORCEMODE PKGINST_USE_GIT_REVS PKGINST_DEBUG_PKGS \
+    PKGINST_CHECK_PKGS PKGINST_CCACHE PKGINST_DISTCC PKGINST_DISTCC_HOSTS PKGINST_SKIP_DEPS \
+    PKGINST_SKIP_REMOTEREPOS PKGINST_CROSS_BUILD PKGINST_PKG_OPTIONS PKGINST_CONFIG_FILE \
+    PKGINST_KEEP_ALL PKGINST_HOSTDIR PKGINST_MASTERDIR PKGINST_SRC_VERSION \
+    PKGINST_DESTDIR PKGINST_MACHINE PKGINST_TEMP_MASTERDIR PKGINST_BINPKG_EXISTS \
+    PKGINST_LIBEXECDIR PKGINST_DISTDIR PKGINST_DISTFILES_MIRROR PKGINST_ALLOW_RESTRICTED \
+    PKGINST_USE_GIT_COMMIT_DATE PKGINST_PKG_COMPTYPE PKGINST_REPO_COMPTYPE PKGINST_BUILDHELPERDIR
+
+for i in REPOSITORY DESTDIR BUILDDIR SRCDISTDIR; do
+    eval val="\$PKGINST_$i"
+    if [ ! -d "$val" ]; then
+        mkdir -p $val
+    fi
+    unset val
+done
+
+# A temporary masterdir requires pkginst-uchroot(1) and -O to use overlayfs
+# on tmpfs (available with pkginst-0.45).
+if [ -z "$IN_CHROOT" -a -n "$PKGINST_TEMP_MASTERDIR" ]; then
+    export PKGINST_CHROOT_CMD="uchroot"
+    export PKGINST_CHROOT_CMD_ARGS+=" -O"
+fi
+#
+# Sanitize PATH.
+#
+if [ -z "$IN_CHROOT" ]; then
+    # In non chroot case always prefer host tools.
+    export PATH="$PATH:$PKGINST_MASTERDIR/usr/bin"
+fi
+
+#
+# Set up ccache
+#
+if [ "$PKGINST_CCACHE" ]; then
+    export CCACHEPATH="/usr/lib/ccache/bin"
+    export CCACHE_DIR="$PKGINST_HOSTDIR/ccache"
+    # Aplan10 not using cached files just due to compiler mtime
+    # changes when e.g. bootstrapping
+    export CCACHE_COMPILERCHECK=content CCACHE_COMPRESS=1
+    export PATH="$CCACHEPATH:$PATH"
+    mkdir -p $CCACHE_DIR
+fi
+
+#
+# Set up distcc
+#
+if [ "$PKGINST_DISTCC" ]; then
+    if [ "$PKGINST_CCACHE" ]; then
+        export CCACHE_PREFIX="/usr/bin/distcc"
+    else
+        DISTCCPATH="/usr/lib/distcc/bin"
+        export PATH="$DISTCCPATH:$PATH"
+    fi
+    export DISTCC_DIR="$PKGINST_HOSTDIR/distcc-${PKGINST_CROSS_BUILD:-${PKGINST_MACHINE}}"
+    export DISTCC_HOSTS="$PKGINST_DISTCC_HOSTS"
+    mkdir -p $DISTCC_DIR
+fi
+
+check_build_requirements
+
+if [ -z "$IN_CHROOT" ]; then
+    trap 'exit_func' INT TERM
+    if [ -n "$PKGINST_DISTFILES_MIRROR" ]; then
+        setup_distfiles_mirror
+    fi
+fi
+#
+# Read funcs from helpers
+#
+for f in ${PKGINST_SHUTILSDIR}/*.sh; do
+    [ -r "$f" ] && . $f
+done
+
+reconfigure_bootstrap_pkgs
+
+#
+# Main switch.
+#
+case "$PKGINST_TARGET" in
+    binary-bootstrap)
+        install_bbootstrap ${PKGINST_TARGET_PKG:=$PKGINST_MACHINE}
+        ;;
+    bootstrap)
+        # bootstrap from sources
+        # check for required host utils
+        check_reqhost_utils bootstrap
+        [[ $PKGINST_MACHINE =~ musl ]] && subarch="-musl"
+        [ ! -d $PKGINST_SRCPKGDIR/base-chroot${subarch} ] && \
+            msg_error "Cannot find $PKGINST_SRCPKGDIR/base-chroot${subarch} directory!\n"
+        bootstrap_vpkg=${PKGINST_MASTERDIR}/etc/pkginst.d/bootstrap-vpkgs.conf
+        mkdir -p ${PKGINST_MASTERDIR}/etc/pkginst.d
+        if [ ! -s ${bootstrap_vpkg} ]; then
+            # Fool pkginst to resolve dependencies.
+            echo 'virtualpkg=libgcc:base-files' >> ${bootstrap_vpkg}
+            echo 'virtualpkg=libstdc++:base-files' >> ${bootstrap_vpkg}
+        fi
+        (
+            export PKGINST_ARCH=$PKGINST_MACHINE
+            export PKGINST_SKIP_REMOTEREPOS=1
+            $PKGINST_LIBEXECDIR/build.sh \
+                base-chroot${subarch} base-chroot${subarch} $PKGINST_TARGET || exit 1
+        ) || exit 1
+        [ -d $PKGINST_MASTERDIR ] && rm -rf $PKGINST_MASTERDIR
+        install_bbootstrap ${PKGINST_TARGET_PKG:=$PKGINST_MACHINE}
+        ;;
+    bootstrap-update)
+        if [ -n "$CHROOT_READY" -a -z "$IN_CHROOT" ]; then
+            chroot_handler bootstrap-update
+        else
+            bootstrap_update
+        fi
+        ;;
+    chroot)
+        chroot_handler chroot dummy
+        ;;
+    clean)
+        if [ -z "$PKGINST_TARGET_PKG" ]; then
+            if [ -n "$CHROOT_READY" -a -z "$IN_CHROOT" ]; then
+                chroot_handler remove-autodeps
+            else
+                remove_pkg_autodeps
+            fi
+            msg_normal "pkginst-src: cleaning up masterdir...\n"
+            # Needed to remove Go Modules
+            [ -d $PKGINST_MASTERDIR/builddir ] && chmod -R +wX $PKGINST_MASTERDIR/builddir
+            rm -rf $PKGINST_MASTERDIR/builddir $PKGINST_MASTERDIR/destdir
+            rm -f $PKGINST_MASTERDIR/tmp/* >/dev/null 2>&1
+        else
+            read_pkg
+            if [ -n "$CHROOT_READY" -a -z "$IN_CHROOT" ]; then
+                chroot_handler $PKGINST_TARGET $PKGINST_TARGET_PKG || exit $?
+            else
+                remove_pkg_wrksrc $wrksrc
+                remove_pkg_statedir
+                if declare -f do_clean >/dev/null; then
+                    run_func do_clean
+                fi
+            fi
+            remove_pkg $PKGINST_CROSS_BUILD
+        fi
+        ;;
+    clean-repocache)
+        export PKGINST_TARGET_ARCH="${PKGINST_CROSS_BUILD:-$PKGINST_TARGET_MACHINE}"
+        $PKGINST_REMOVE_CMD -C /dev/null -c $PKGINST_HOSTDIR/repocache -O
+        ;;
+    consistency-check)
+        consistency_check
+        ;;
+    remove-autodeps)
+        if [ -n "$CHROOT_READY" -a -z "$IN_CHROOT" ]; then
+            chroot_handler remove-autodeps
+        else
+            remove_pkg_autodeps
+        fi
+        ;;
+    fetch|extract|patch|configure|build|check|install|pkg)
+        if [ "$PKGINST_TARGET" = "check" ]; then
+            export PKGINST_CHECK_PKGS=1
+        fi
+        read_pkg
+        if [ -n "$CHROOT_READY" -a -z "$IN_CHROOT" ]; then
+            chroot_handler $PKGINST_TARGET $PKGINST_TARGET_PKG
+        else
+            [ -z "$PKGINST_KEEP_ALL" -a -z "$PKGINST_SKIP_DEPS" ] && remove_pkg_autodeps
+            $PKGINST_LIBEXECDIR/build.sh $PKGINST_TARGET_PKG $PKGINST_TARGET_PKG \
+                $PKGINST_TARGET $PKGINST_CROSS_BUILD || exit $?
+        fi
+        ;;
+    remove|remove-destdir)
+        read_pkg
+        remove_pkg $PKGINST_CROSS_BUILD
+        ;;
+    list)
+        $PKGINST_QUERY_CMD -l
+        ;;
+    purge-distfiles)
+        purge_distfiles
+        ;;
+    show)
+        read_pkg ignore-problems
+        show_pkg
+        ;;
+    show-avail)
+        read_pkg &>/dev/null
+        show_avail
+        ;;
+    show-files)
+        read_pkg ignore-problems
+        show_pkg_files
+        ;;
+    show-deps)
+        read_pkg ignore-problems
+        show_pkg_deps
+        ;;
+    show-build-deps)
+        read_pkg ignore-problems
+        show_pkg_build_deps
+        ;;
+    show-hostmakedepends)
+        read_pkg ignore-problems
+        show_pkg_hostmakedepends
+        ;;
+    show-makedepends)
+        read_pkg ignore-problems
+        show_pkg_makedepends
+        ;;
+    show-pkg-var)
+        read_pkg ignore-problems
+        for sub_name in $subpackages; do
+            if [ $sub_name = $PKGINST_TARGET_PKG ]; then
+                ${sub_name}_package
+            fi
+        done
+	while IFS= read -r pkg_var; do
+		print_var=
+		case "${pkg_var}" in
+		    bootstrap) print_var="$bootstrap ";;
+		    broken) print_var="$broken ";;
+		    depends) print_var="$depends ";;
+		    hostmakedepends) print_var="$hostmakedepends ";;
+		    makedepends) print_var="$makedepends ";;
+		    nocross) print_var="$nocross ";;
+		    pkgname) print_var="$pkgname ";;
+		    restricted) print_var="$restricted ";;
+		    revision) print_var="$revision ";;
+		    subpackages) print_var="$subpackages ";;
+		    version) print_var="$version ";;
+		    provides) print_var="$provides ";;
+		    lib32disabled) print_var="$lib32disabled ";;
+		    nodebug) print_var="$nodebug ";;
+		esac # the space at the end of each is essential for unset vars
+		if [ -n "$print_var" ]; then
+			printf "%s\n" "$(printf "${print_var% }" | tr -t '\n\r' ' ')"
+		fi # The trailing space gets stripped before printing anyway
+	done
+        ;;
+    show-options)
+        read_pkg ignore-problems
+        show_pkg_build_options
+        ;;
+    show-shlib-provides)
+        read_pkg ignore-problems
+        show_pkg_shlib_provides
+        ;;
+    show-shlib-requires)
+        read_pkg ignore-problems
+        show_pkg_shlib_requires
+        ;;
+    show-var)
+        for f in ${PKGINST_COMMONDIR}/environment/setup/*.sh; do
+            source $f
+        done
+        source ${PKGINST_COMMONDIR}/build-profiles/${PKGINST_MACHINE}.sh
+        eval value="\${$PKGINST_TARGET_PKG}"
+        echo $value
+        ;;
+    show-repo-updates)
+        bulk_build
+        ;;
+    show-sys-updates)
+        bulk_build -I
+        ;;
+    sort-dependencies)
+        bulk_sortdeps ${@/$PKGINST_TARGET/}
+        ;;
+    update-bulk)
+        bulk_update
+        ;;
+    update-sys)
+        bulk_update -I
+        ;;
+    update-check)
+        read_pkg ignore-problems
+        update_check
+        ;;
+    update-hash-cache)
+        update_hash_cache
+        ;;
+    zap)
+        masterdir_zap
+        ;;
+    *)
+        msg_red "pkginst-src: invalid target $PKGINST_TARGET.\n"
+        usage && exit 1
+        ;;
+esac
+
+exit_and_cleanup $?

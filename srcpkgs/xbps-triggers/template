@@ -1,0 +1,23 @@
+# Template file for 'pkginst-triggers'
+pkgname=pkginst-triggers
+version=0.113
+revision=1
+archs=noarch
+bootstrap=yes
+short_desc="The PKGINST triggers for Plan10 Linux"
+maintainer="Enno Boland <gottox@plan10.org>"
+homepage="https://plan10.org"
+license="BSD-2-clause"
+
+do_install() {
+	_triggersdir=usr/libexec/${pkgname}
+
+	for f in ${FILESDIR}/*; do
+		_trigger=$(basename $f)
+		vinstall ${FILESDIR}/${_trigger} 750 ${_triggersdir}
+		echo "# end" >> ${DESTDIR}/${_triggersdir}/${_trigger}
+	done
+	vmkdir var/db/pkginst
+	cd ${DESTDIR}/var/db/pkginst
+	ln -sf ../../../${_triggersdir} triggers
+}

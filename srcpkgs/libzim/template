@@ -1,0 +1,31 @@
+# Template file for 'libzim'
+pkgname=libzim
+version=5.0.2
+revision=1
+build_style=meson
+hostmakedepends="pkg-config git"
+makedepends="liblzma-devel $(vopt_if zlib zlib-devel)
+ $(vopt_if xapian "xapian-core-devel icu-devel")
+ gtest-devel"
+short_desc="Library to read and write ZIM files"
+maintainer="John <johnz@posteo.net>"
+license="GPL-2.0-or-later"
+homepage="https://wiki.openzim.org/wiki/OpenZIM"
+changelog="https://github.com/openzim/libzim/blob/${version}/ChangeLog"
+distfiles="https://github.com/openzim/libzim/archive/${version}.tar.gz"
+checksum=f6106515950433491bd1981abce0c565e86ec70c32b3afdb286a6cb8b8c120e8
+replaces="libzim-tools>=0"
+
+build_options="zlib xapian"
+build_options_default="zlib xapian"
+
+libzim-devel_package() {
+	short_desc+=" - development files"
+	depends="${sourcepkg}>=${version}_${revision}
+	$(vopt_if zlib zlib-devel) liblzma-devel"
+	pkg_install() {
+		vmove usr/include
+		vmove usr/lib/*.so
+		vmove usr/lib/pkgconfig
+	}
+}

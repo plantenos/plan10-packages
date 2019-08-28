@@ -1,0 +1,16 @@
+# Template file for 'plan10-artwork'
+pkgname=plan10-artwork
+version=20170517
+revision=2
+archs=noarch
+short_desc="Plan10 Linux artwork"
+maintainer="Enno Boland <gottox@plan10.org>"
+license="Public domain"
+homepage="http://www.plan10.org"
+
+do_install() {
+	vinstall ${FILESDIR}/splash.png 644 usr/share/plan10-artwork
+	vinstall ${FILESDIR}/splashwhite.png 644 usr/share/plan10-artwork
+	vinstall ${FILESDIR}/plan10-logo.png 644 usr/share/plan10-artwork
+	vinstall ${FILESDIR}/plan10-transparent.png 644 usr/share/plan10-artwork
+}

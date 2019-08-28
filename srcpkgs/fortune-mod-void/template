@@ -1,0 +1,23 @@
+# Template file for 'fortune-mod-plan10'
+pkgname=fortune-mod-plan10
+version=20190302
+revision=1
+archs=noarch
+create_wrksrc=yes
+hostmakedepends="fortune-mod"
+depends="${hostmakedepends}"
+short_desc="Quotes from #pkginst and other plan10 related stuff"
+maintainer="Georg Schabel <gescha@posteo.de>"
+license="GPL-2.0-or-later"
+homepage="http://plan10.org/"
+nocross=yes
+
+do_build() {
+	cp ${FILESDIR}/plan10 ${wrksrc}
+	strfile plan10
+}
+
+do_install() {
+	vmkdir usr/share/fortunes
+	vcopy * usr/share/fortunes
+}

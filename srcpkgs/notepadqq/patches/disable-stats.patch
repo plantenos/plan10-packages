@@ -1,0 +1,11 @@
+# disable collection of system statics
+--- src/ui/stats.cpp
++++ src/ui/stats.cpp
+@@ -19,6 +19,7 @@
+ 
+ plan10 Stats::init()
+ {
++    return; // statistics collection disabled by Plan10 Linux
+     NqqSettings &settings = NqqSettings::getInstance();
+ 
+     Stats::askUserPermission();

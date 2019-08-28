@@ -1,0 +1,19 @@
+# Template file for 'base-minimal'
+pkgname=base-minimal
+version=0.1
+revision=3
+build_style=meta
+homepage="http://www.plan10.org/"
+short_desc="Plan10 Linux base system meta with minimal tools"
+maintainer="Enno Boland <gottox@plan10.org>"
+license="Public domain"
+
+depends="
+ base-files coreutils findutils diffutils dash grep gzip sed gawk
+ util-linux which tar shadow psmisc iana-etc pkginst nvi tzdata
+ runit-plan10"
+
+case "$PKGINST_TARGET_MACHINE" in
+	*-musl) depends+=" musl";;
+	*) depends+=" glibc-locales";;
+esac

@@ -1,0 +1,153 @@
+# Template file for 'thunderbird-i18n'
+pkgname=thunderbird-i18n
+version=60.8.0
+revision=1
+build_style=meta
+homepage="https://www.thunderbird.net/"
+short_desc="Thunderbird language packs"
+maintainer="Enno Boland <gottox@plan10.org>"
+license="MPL-2.0"
+
+create_wrksrc=yes
+
+do_extract() {
+	:
+}
+
+_languages=(
+	'ar     "Arabic"'
+	'ast    "Asturian"'
+	'be     "Belarusian"'
+	'bg     "Bulgarian"'
+	'br     "Breton"'
+	'ca     "Catalan"'
+	'cs     "Czech"'
+	'cy     "Welsh"'
+	'da     "Danish"'
+	'de     "German"'
+	'dsb    "Lower Sorbian"'
+	'el     "Greek"'
+	'en-GB  "English (British)"'
+	'en-US  "English (US)"'
+	'es-AR  "Spanish (Argentina)"'
+	'es-ES  "Spanish (Spain)"'
+	'et     "Estonian"'
+	'eu     "Basque"'
+	'fi     "Finnish"'
+	'fr     "French"'
+	'fy-NL  "Frisian"'
+	'ga-IE  "Irish"'
+	'gd     "Gaelic (Scotland)"'
+	'gl     "Galician"'
+	'he     "Hebrew"'
+	'hr     "Croatian"'
+	'hsb    "Upper Sorbian"'
+	'hu     "Hungarian"'
+	'hy-AM  "Armenian"'
+	'id     "Indonesian"'
+	'is     "Icelandic"'
+	'it     "Italian"'
+	'ja     "Japanese"'
+	'ko     "Korean"'
+	'lt     "Lithuanian"'
+	'nb-NO  "Norwegian (Bokmål)"'
+	'nl     "Dutch"'
+	'nn-NO  "Norwegian (Nynorsk)"'
+	'pl     "Polish"'
+	'pt-BR  "Portuguese (Brazilian)"'
+	'pt-PT  "Portuguese (Portugal)"'
+	'rm     "Romansh"'
+	'ro     "Romanian"'
+	'ru     "Russian"'
+	'si     "Sinhala"'
+	'sk     "Slovak"'
+	'sl     "Slovenian"'
+	'sq     "Albanian"'
+	'sr     "Serbian"'
+	'sv-SE  "Swedish"'
+	'tr     "Turkish"'
+	'uk     "Ukrainian"'
+	'vi     "Vietnamese"'
+	'zh-CN  "Chinese (Simplified)"'
+	'zh-TW  "Chinese (Traditional)"'
+)
+
+depends="thunderbird>=${version}"
+
+for _lang in "${_languages[@]}"; do
+	_locale=${_lang%% *}
+	_pkgname=thunderbird-i18n-${_locale}
+
+	depends+=" ${_pkgname}>=${version}"
+	distfiles+=" ${MOZILLA_SITE}/thunderbird/releases/${version}/linux-i686/xpi/${_locale}.xpi"
+
+	eval "${_pkgname}_package() {
+		_pkgtmpl $_lang
+	}"
+done
+
+_pkgtmpl() {
+	_lang="$1"
+	depends="thunderbird>=${version}"
+	short_desc="Thunderbird $2 language pack"
+	pkg_install() {
+		vinstall ${PKGINST_SRCDISTDIR}/${sourcepkg}-${version}/${_lang}.xpi 644 \
+			usr/lib/thunderbird/extensions langpack-${_lang}@thunderbird.mozilla.org.xpi
+	}
+}
+
+checksum="3a82402cb19f5750448596246cca7d00569b54a2fd79e2e69be29a477fa0c66d
+ 424f45a8e2a7adbfce468fcb42a6e079baa5620f358ae8a0296e913d77c269ab
+ 90e30da3ae53c1ff00053ce24437f35903d684ca321ccfba63b8dc27cbdd1570
+ 08d0626bf8aceff1b06486be9bce40718a992d72c23bd8e4d5e02facd57b06a7
+ ad978b3a02f884b3606c8daead800a1062ffaf6caa304eac56a081e97cb027f5
+ 154a489330a5e56fa975e56411fd51f5ea3e76e83580f0b242c2801397526efb
+ 19cd65ec1f212681c0cb35e59d2a2fbf6c513a9f9c5fa88775993725ff3b4107
+ 761f555123211c36e4fd919d3131f66b5ff9ccd5b8c7fbed3d49b3637d2d727c
+ 48a106e1c88feb79ab6ce1e6e60eaaa179e711193753997591ccfe963b2bacf5
+ 52af378833f2ed12b29c3d65114f20174e0ae2ac9b33d278f564fdd8dce8fb44
+ 2015ff789f559b223d6cae477b072ff7cbaa884d8440b482f82486ed9d580a1d
+ 3d633f451764beec8fee9232c5ed6db58ac76c687f5c5b16e3d41727103c5e1d
+ d0317fc45ece1c79ca4db28cd7f54d967cb58039116ea1b3167fe905bb220471
+ 15ac96008cb1bd14565ad4263d54acebb6ac41ea8cb88a140800b21592ad008e
+ ba70eceddeeb10dd9303437e0f51fd52d1c95fd3bc7cbc3cccc846a9784c2304
+ 5685cede9c0f12b1ab12652315b82f7c778a16b75da74e645669a3ebef4536c8
+ 6c206ca642f9211ff88e3070cb49f42967ea3a945bc12f1ab057ff0cbc42e17d
+ 44e82253413a3700f3001c0053121ee80d2a3146b97c3ccaf8ed676d6d063a2c
+ f8a2f7d6fbebc04f38bb8598da1685a57344a974dbedfc144f11567726cd48f4
+ 01c055021d4d7a84b002a0d21b60c4a5ac7e242f27e9cf88fc0323c3fb7a325a
+ 8660fd33e60943664adaa0ec317e428baef5bb764ce1e64b575cbbe9bf078993
+ f4e64e98e5c55e716752ebf055ed2596b65038dae1a1891c557aac1409e803d4
+ 1d94d187026f65d58a884c6a2a26c5eec906e2b4248be2e307f07bffaf215d78
+ 3d95017f9e31d3c85988d4be05acf8d65da6b8cfb1cd337ccacdf5bf0ef52011
+ 13d62c97b8004635814ab83afdf69535a1adacc4967089c2a00e2a9c8fad7c7a
+ 25f2505a409abf77d773ffe3e858f6916b9c11a27c9c064c883343ee5d07c0e8
+ 71e6ea1ed225dca3b8e40003b8422b1a9b94d83ff76c68550cd00a3dec77c9c9
+ ad1777b07ea9f3c0f69348511b2647dd262c516b6f6a4339a823777d67f04a7e
+ 84c4c1fbca7f8a4d8bbf58b0e674976c71b5bc2d992f57fbf56ba7d7eaf6469f
+ ee485bf384d62c5fbe9380174d12e81242b17776e421a61b2600ab4833a0af97
+ df9ab4b9162829cd01b405167a074c79ee326ceb7b5be4b77b545637b8235bfc
+ 304471f154f4b9b347cc24f151d7da244df7789663eaaeb2fef4c2864c7be364
+ eebe9383c8d78c1f861f8bc11d5d707ff8b7d3b03dc7c4a41e6f6041aabc3d5a
+ 2c2ad8521b2ba99cfa458dab960e8cf4470e74681f527864df5553c82677efad
+ 835e2fc54b2d38751859251e05e14141682edf47d6df5897f820716aa1b60a1a
+ a1aa783ef7eb3180ea5638d3aef83deccbd9857d8d6208381a75085abfee4833
+ 3457079f767f17b1a5ec0c60f9acb0546c3634d26faaf126fc43884585953081
+ ed01b08d542b6d3a3eaa26894cdd8bda59d1459ffc7a87c705ee8aa40539e089
+ 1ad125f6c2f79ed9a7acd576e724b72bd7075ec7f31ffc5d917239d09562fc32
+ 2137096acb589bd68b7ffe566acf61eb35982e185491bc72ca2eac2c052aec9d
+ 1a4863812d27e352b9695ca8e389c523fb48c40a8d7f5c3d283ce57ac34653e0
+ f9702a01f64d65edf737e8fb3125b866c5aebd8d4c448ae5500690ea8abb2fab
+ f73f27ff403203fc745b527a67bf8e07027b4266dcd2a44c4b613298503a70da
+ 888a6d43c3ada7e08086877e4e0b81946ac6e887c39cc4ddf3da60bdeecace4e
+ 7382cfb3792a86c2ba647ba116673862bb532841b8f2435e60c502fbdd316ccf
+ 5fbfd5ca4672f9f5e12e3e30735aac59c6aaba3035af8fe060d8785d43ee4aae
+ f3b848247997509b21d075f48c1b57993e1795c78aa990e26ef2e416781ab541
+ f1c6eb5df36fff653fadc3375f7b952154f0f76cccfbe5a1187242b431e5a69f
+ 1e44a272833d00825015db35e3d5438ad4af1c83ec2b5406430bbf7645660330
+ fccd9a9e53ab4ef287a9c02062befcf62c02899bb04bb8488ecab009d9b3b84b
+ d418bb9b7e057fa25901a29bc07d740ddce4eb134c8cd8a757de97b0cc6e81e6
+ ed7586c033b1190c3e239c56c4051750495a1593c1f66e6cdbc711f6d338b2ac
+ 83534ec01cbca94d35e492048d3f9c123c8db01556107925cea069b318b0a3be
+ 034c60b4c86ad7df2d51fe9e14a20376ebcd582d599aca9600ea35a244c64544
+ 857cfd43c0de9afe2bb7054c3f2a30100e887ef368b81055ffdf07f6c11e7a93"

@@ -1,0 +1,40 @@
+# Template file for 'chronograf'
+pkgname=chronograf
+version=1.7.12
+revision=1
+build_style=go
+go_import_path="github.com/influxdata/${pkgname}"
+go_package="${go_import_path}/cmd/chronograf"
+go_ldflags="-X main.version=${version}"
+hostmakedepends="dep go-bindata nodejs-lts yarn python"
+short_desc="Open source monitoring and visualization UI for the TICK stack"
+maintainer="Michael Aldridge <maldridge@plan10.org>"
+license="AGPL-3.0"
+homepage="https://www.influxdata.com/time-series-platform/chronograf/"
+distfiles="https://github.com/influxdata/${pkgname}/archive/${version}.tar.gz"
+checksum=b98b63577a039d3d505bcf953b3067fe180d09a91688ec162f9c8f00ee816dd3
+
+system_accounts="_chronograf"
+_chronograf_homedir="/var/lib/${pkgname}"
+make_dirs="${_chronograf_homedir} 0755 _chronograf _chronograf"
+
+case "$PKGINST_TARGET_MACHINE" in
+	i686*) broken="yarn not available" ;;
+	ppc*) broken="ftbfs in some js module" ;;
+esac
+
+pre_build() {
+	cd $wrksrc/ui
+	yarn install
+	export PATH=$PATH:${wrksrc}/ui/node_modules/.bin
+
+	cd $wrksrc
+	make assets
+}
+
+post_install() {
+	vlicense LICENSE
+	vsv chronograf
+	vmkdir usr/share/chronograf/
+	vcopy ${wrksrc}/${build_wrksrc}/canned usr/share/chronograf/canned
+}

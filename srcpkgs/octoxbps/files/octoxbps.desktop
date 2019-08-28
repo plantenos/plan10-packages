@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=OctoPKGINST
+Comment=GUI frontend for PKGINST
+Comment[de]=GUI Programm für PKGINST 
+Exec=octopkginst
+Icon=octopkginst
+Terminal=false
+Type=Application
+Categories=System;Settings;

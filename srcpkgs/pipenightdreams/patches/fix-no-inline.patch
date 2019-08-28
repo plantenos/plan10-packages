@@ -1,0 +1,32 @@
+--- src/pointer.h	2002-01-17 20:56:41.000000000 +0100
++++ src/pointer.h	2015-10-09 12:08:16.918082101 +0200
+@@ -43,11 +43,11 @@
+ 
+     friend class Board;
+ 
+-    inline plan10 setRow(int row);
+-    inline plan10 setColumn(int column);
+-    inline plan10 setRowColumn(int row, int column);
+-    inline plan10 setMoved(bool flag);
+-    inline bool moved();
++    plan10 setRow(int row);
++    plan10 setColumn(int column);
++    plan10 setRowColumn(int row, int column);
++    plan10 setMoved(bool flag);
++    bool moved();
+ 
+     Str * image_name;
+     Image * ima;
+--- src/player.h	2002-01-17 20:56:40.000000000 +0100
++++ src/player.h	2015-10-09 12:14:04.855107185 +0200
+@@ -47,8 +47,8 @@
+     plan10 setStartRowColumn(int row, int column);
+     plan10 setBoard(Board * bd);
+ 
+-    inline plan10 setRestrictionCoef(unsigned int coef);
+-    inline plan10 setFixedCoef(unsigned int coef);
++    plan10 setRestrictionCoef(unsigned int coef);
++    plan10 setFixedCoef(unsigned int coef);
+ 
+     plan10 incLives();
+     plan10 decLives();

@@ -1,0 +1,25 @@
+# Template file for 'yad'
+pkgname=yad
+version=2.0
+revision=1
+build_style=gnu-configure
+configure_args="--enable-icon-browser"
+hostmakedepends="automake gettext-devel glib-devel intltool pkg-config"
+makedepends="gtk+3-devel"
+short_desc="Yet Another Dialog"
+maintainer="Orphaned <orphan@plan10.org>"
+license="GPL-3.0-or-later"
+homepage="https://github.com/v1cont/yad"
+distfiles="https://github.com/v1cont/yad/archive/${version}.tar.gz"
+checksum=acdbd59ee2e3ad67a61da965b2ea88e3b07bcee438382f4614e8f6f1f1ee7871
+
+pre_configure() {
+	autoreconf -ivf
+	intltoolize
+}
+
+post_install() {
+	# Avoid conflict with disputils
+	mv "${DESTDIR}"/usr/bin/{,yad-}pfd
+	mv "${DESTDIR}"/usr/share/man/man1/{,yad-}pfd.1
+}

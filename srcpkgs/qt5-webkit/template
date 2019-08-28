@@ -1,0 +1,68 @@
+# Template file for 'qt5-webkit'
+pkgname=qt5-webkit
+version=5.212.0
+revision=5
+_snap=1561566461
+_v=${version%.*}
+wrksrc="qtwebkit-everywhere-src-${_v}"
+build_style=cmake
+configure_args="-DPORT=Qt -DUSE_LD_GOLD=OFF"
+hostmakedepends="flex gperf perl pkg-config python qt5-qmake ruby"
+makedepends="libwebp-devel libxslt-devel libXcomposite-devel sqlite-devel
+ libjpeg-turbo-devel gst-plugins-base1-devel qt5-declarative-devel
+ qt5-location-devel qt5-sensors-devel qt5-webchannel-devel hyphen-devel
+ ruby-devel"
+short_desc="Cross-platform application and UI framework (Qt5) - WebKit2 component"
+maintainer="Orphaned <orphan@plan10.org>"
+license="LGPL-2.1-or-later"
+homepage="https://www.qt.io/"
+distfiles="https://download.qt.io/snapshots/ci/qtwebkit/${_v}/${_snap}/src/submodules/qtwebkit-everywhere-src-${_v}.tar.xz"
+checksum=68eae85e7a12077b8004d7a039af065d68112e8e9ab95013f4e01527759fab9f
+
+CPPFLAGS="-I${PKGINST_CROSS_BASE}/usr/include"
+CXXFLAGS="-fpermissive -Wno-class-memaccess"
+
+if [ "$CROSS_BUILD" ]; then
+	hostmakedepends+=" qt5-host-tools qt5-declarative-devel ruby-devel"
+	configure_args+=" -DRUBY_CONFIG_INCLUDE_DIR=${PKGINST_CROSS_BASE}/usr/include/ruby-*"
+fi
+
+# reduce memory footprint when linking
+if [ "$PKGINST_WORDSIZE" -eq 32 ]; then
+	nodebug=yes
+fi
+
+case "$PKGINST_TARGET_MACHINE" in
+	armv6*)	# Need libatomic for __atomic_fetch_add_8 etc.
+		makedepends+=" libatomic-devel"
+		LIBS+=" -latomic"
+		;;
+	ppc64*)	# no JIT on ppc64 and other build workarounds
+		configure_args+=" -DENABLE_JIT=OFF -DUSE_SYSTEM_MALLOC=ON"
+		;;
+	ppc*)   # no JIT on ppc and need libatomic
+		configure_args+=" -DENABLE_JIT=OFF -DUSE_SYSTEM_MALLOC=ON"
+		makedepends+=" libatomic-devel"
+		LIBS+=" -latomic"
+		;;
+esac
+
+pre_configure() {
+	if [ "$CROSS_BUILD" ]; then
+		# XXX: disable failing check for private headers and assume they are available
+		sed -i Source/cmake/OptionsQt.cmake \
+			-e 's;check_cxx_source_compiles("${INCLUDE_TEST_SOURCE}" \(Qt5${_qt_component}_PRIVATE_HEADER_FOUND\));set(\1 1);'
+	fi
+}
+
+qt5-webkit-devel_package() {
+	short_desc+=" (development)"
+	depends="${sourcepkg}>=${version}_${revision}"
+	pkg_install() {
+		vmove usr/include
+		vmove usr/lib/*.so
+		vmove usr/lib/cmake
+		vmove usr/lib/pkgconfig
+		vmove usr/lib/qt5/mkspecs
+	}
+}

@@ -1,0 +1,20 @@
+# Template file for 'plasma-sdk'
+pkgname=plasma-sdk
+version=5.16.4
+revision=1
+build_style=cmake
+configure_args="-DBUILD_TESTING=OFF"
+hostmakedepends="extra-cmake-modules qt5-qmake qt5-host-tools kcoreaddons"
+makedepends="plasma-framework-devel kdelibs4support-devel kdesignerplugin-devel
+ kitemmodels-devel knewstuff-devel ktexteditor-devel kdoctools-devel"
+short_desc="Plasma development applications"
+maintainer="John <johnz@posteo.net>"
+license="GPL-2.0-or-later, LGPL-2.1-or-later"
+homepage="https://projects.kde.org/projects/plasma/plasma-sdk"
+distfiles="${KDE_SITE}/plasma/${version}/${pkgname}-${version}.tar.xz"
+checksum=ce8152ad6044e2cf430834bf97bb4542e69e168a4b7350e313d148a9bd3b9403
+
+if [ "$CROSS_BUILD" ]; then
+	hostmakedepends+=" kpackage-devel kconfig-devel kcoreaddons-devel plasma-framework"
+	configure_args+=" -DKF5_HOST_TOOLING=/usr/lib/cmake"
+fi

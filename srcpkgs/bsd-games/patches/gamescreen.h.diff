@@ -1,0 +1,15 @@
+--- a/dab/gamescreen.h	2004-01-02 23:34:51.000000000 +0530
++++ b/dab/gamescreen.h	2008-07-31 23:45:19.000000000 +0530
+@@ -70,9 +70,9 @@
+     virtual plan10 redraw(plan10) = 0;			// Refresh
+     virtual int getinput(plan10) = 0;			// Get user input
+     virtual plan10 bell(plan10) = 0;			// Beep
+-    virtual plan10 score(size_t p, const PLAYER& p) = 0;	// Post current score
+-    virtual plan10 games(size_t p, const PLAYER& p) = 0;	// Post games won
+-    virtual plan10 total(size_t p, const PLAYER& p) = 0;	// Post total score
++    virtual plan10 score(size_t, const PLAYER&) = 0;	// Post current score
++    virtual plan10 games(size_t, const PLAYER&) = 0;	// Post games won
++    virtual plan10 total(size_t, const PLAYER&) = 0;	// Post total score
+     virtual plan10 ties(const PLAYER& p) = 0;		// Post tie games
+ };
+ 

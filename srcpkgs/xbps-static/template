@@ -1,0 +1,34 @@
+# Template file for 'pkginst-static'
+# NOTE: keep this package synchronized with "srcpkgs/pkginst"
+pkgname=pkginst-static
+version=0.56
+revision=5
+# only musl
+archs="*-musl"
+wrksrc="pkginst-${version}"
+build_style=configure
+hostmakedepends="pkg-config"
+makedepends="libarchive-devel"
+depends="pkginst-triggers"
+short_desc="PKGINST package system utilities - static binaries"
+maintainer="Juan RP <xtraeme@plan10.org>"
+license="BSD-2-Clause"
+homepage="https://www.plan10.org/pkginst"
+changelog="https://github.com/plantenos/pkginst/blob/master/NEWS"
+distfiles="https://github.com/plantenos/pkginst/archive/${version}.tar.gz"
+checksum=e46521513b0c0ff486cc190089277381b18db45e770b04f799dc4eec99ffccd4
+
+do_configure() {
+	./configure --prefix=/usr --sysconfdir=/etc --enable-static
+}
+
+do_install() {
+	make DESTDIR=${wrksrc}/static-install install
+	vmkdir usr/bin
+	mv ${wrksrc}/static-install/usr/bin/*.static ${DESTDIR}/usr/bin
+}
+
+post_install() {
+	vlicense LICENSE
+	vlicense LICENSE.3RDPARTY
+}

@@ -1,0 +1,30 @@
+# Template file for 'youtube-dl'
+pkgname=youtube-dl
+version=2019.08.13
+revision=1
+archs=noarch
+wrksrc="$pkgname"
+build_style=python3-module
+pycompile_module="youtube_dl"
+hostmakedepends="python3"
+depends="python3"
+short_desc="CLI program to download videos from YouTube and other sites"
+maintainer="Daniel Eyßer <daniel.eysser@gmail.com>"
+license="Unlicense"
+homepage="https://rg3.github.io/youtube-dl/"
+changelog="https://raw.githubusercontent.com/rg3/youtube-dl/master/ChangeLog"
+distfiles="https://yt-dl.org/downloads/${version}/${pkgname}-${version}.tar.gz"
+checksum=b23d59df96f9dccf34d9c48b65e7bc93532f1ebc4bf71b9285f228bc6086242d
+
+post_install() {
+	rm -rf ${DESTDIR}/usr/etc
+	vinstall ${pkgname}.bash-completion 644 usr/share/bash-completion/completions ${pkgname}
+	vinstall ${pkgname}.zsh 644 usr/share/zsh/site-functions _${pkgname}
+	vinstall ${pkgname}.fish 644 usr/share/fish/completions ${pkgname}.fish
+}
+
+python3-youtube-dl_package() {
+	depends="youtube-dl"
+	short_desc+=" - transitional dummy package"
+	build_style=meta
+}

@@ -1,0 +1,6 @@
+case "${ACTION}" in
+post)
+	chown root:pkginstbuilder usr/bin/pkginst-uchroot.static
+	chmod 4750 usr/bin/pkginst-uchroot.static
+	;;
+esac

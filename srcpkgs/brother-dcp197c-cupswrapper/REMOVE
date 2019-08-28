@@ -1,0 +1,3 @@
+case ${ACTION} in
+    pre) opt/brother/Printers/dcp197c/cupswrapper/cupswrapper.plan10 -e ;;
+esac

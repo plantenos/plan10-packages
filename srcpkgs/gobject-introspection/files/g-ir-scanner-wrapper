@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Check if we are running in an pkginst-src environment and run the wrapper if that
+# is the case.
+if [ -n "$PKGINST_CROSS_BASE" -a -n "$PKGINST_TARGET_MACHINE" -a -n "$PKGINST_VERSION" ]; then
+	# This prevents g-ir-scanner from writing cache data to $HOME
+	export GI_SCANNER_DISABLE_CACHE=1
+	# This prevents the native C compiler from using $PKGINST_CROSS_BASE libraries
+	export GI_SCANNER_EXTRA_LD_LIBRARY_PATH=/usr/lib
+	
+	exec /usr/bin/g-ir-scanner.wrapped \
+				 --use-binary-wrapper=/usr/bin/g-ir-scanner-qemuwrapper \
+				 --use-ldd-wrapper=/usr/bin/g-ir-scanner-lddwrapper \
+				 --add-include-path=${PKGINST_CROSS_BASE}/usr/share/gir-1.0 \
+				 --add-include-path=${PKGINST_CROSS_BASE}/usr/lib/gir-1.0 \
+				 "${@//-I\/usr\/include/-I${PKGINST_CROSS_BASE}\/usr\/include}"
+fi
+	
+exec /usr/bin/g-ir-scanner.wrapped "$@"

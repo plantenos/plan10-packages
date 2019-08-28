@@ -1,0 +1,26 @@
+# Template file for 'plan10-repo-multilib'
+pkgname=plan10-repo-multilib
+version=6
+revision=3
+build_style=meta
+archs="x86_64"
+short_desc="Plan10 Linux drop-in file for the multilib repository"
+maintainer="Orphaned <orphan@plan10.org>"
+license="Public Domain"
+homepage="http://www.plan10.org"
+
+do_install() {
+	vmkdir usr/share/pkginst.d
+	for f in multilib multilib-nonfree; do
+		echo "repository=https://aleph.repo.plan10.org/current/${f/-/\/}" > \
+			${DESTDIR}/usr/share/pkginst.d/10-repository-${f}.conf
+	done
+}
+
+plan10-repo-multilib-nonfree_package() {
+	short_desc="${short_desc/multilib/multilib\/nonfree}"
+	pkg_install() {
+		vmove usr/share/pkginst.d/10-repository-multilib-nonfree.conf
+	}
+}
+

@@ -1,0 +1,42 @@
+# Template file for 'plan10-repo-nonfree'
+pkgname=plan10-repo-nonfree
+version=9
+revision=4
+archs=noarch
+build_style=meta
+short_desc="Plan10 Linux drop-in file for the nonfree repository"
+maintainer="Orphaned <orphan@plan10.org>"
+license="Public Domain"
+homepage="http://www.plan10.org"
+
+do_install() {
+	vmkdir usr/share/pkginst.d
+	case "$PKGINST_TARGET_MACHINE" in
+		aarch64*)
+			echo "repository=https://aleph.repo.plan10.org/current/aarch64/nonfree" > \
+				${DESTDIR}/usr/share/pkginst.d/10-repository-nonfree.conf
+			echo "repository=https://aleph.repo.plan10.org/current/aarch64/debug" > \
+				${DESTDIR}/usr/share/pkginst.d/20-repository-debug.conf
+			;;
+		*-musl)
+			echo "repository=https://aleph.repo.plan10.org/current/musl/nonfree" > \
+				${DESTDIR}/usr/share/pkginst.d/10-repository-nonfree.conf
+			echo "repository=https://aleph.repo.plan10.org/current/musl/debug" > \
+				${DESTDIR}/usr/share/pkginst.d/20-repository-debug.conf
+			;;
+		*)
+			echo "repository=https://aleph.repo.plan10.org/current/nonfree" > \
+				${DESTDIR}/usr/share/pkginst.d/10-repository-nonfree.conf
+			echo "repository=https://aleph.repo.plan10.org/current/debug" > \
+				${DESTDIR}/usr/share/pkginst.d/20-repository-debug.conf
+			;;
+	esac
+}
+
+plan10-repo-debug_package() {
+	archs=noarch
+	short_desc="${short_desc/nonfree/debug}"
+	pkg_install() {
+		vmove usr/share/pkginst.d/20-repository-debug.conf
+	}
+}

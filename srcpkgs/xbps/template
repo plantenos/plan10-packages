@@ -1,0 +1,70 @@
+# Template file for 'pkginst'
+pkgname=pkginst
+version=0.56
+revision=7
+bootstrap=yes
+build_style=configure
+short_desc="PKGINST package system utilities"
+maintainer="Juan RP <xtraeme@plan10.org>"
+license="BSD-2-Clause"
+homepage="https://github.com/plantenos/pkginst"
+changelog="https://github.com/plantenos/pkginst/blob/master/NEWS"
+distfiles="https://github.com/plantenos/pkginst/archive/${version}.tar.gz"
+checksum=e46521513b0c0ff486cc190089277381b18db45e770b04f799dc4eec99ffccd4
+
+hostmakedepends="pkg-config"
+checkdepends="kyua"
+makedepends="zlib-devel libressl-devel libarchive-devel"
+depends="ca-certificates pkginst-triggers"
+
+make_dirs="/etc/pkginst.d 0755 root root"
+
+if [ "$CHROOT_READY" ]; then
+	makedepends+=" atf-devel"
+	pkginst-tests_package() {
+		short_desc+=" - Kyua testsuite"
+		pkg_install() {
+			vmove usr/tests
+		}
+	}
+
+fi
+
+do_configure() {
+	./configure --prefix=/usr --sysconfdir=/etc ${CHROOT_READY:+--enable-tests}
+}
+post_install() {
+	case "$PKGINST_TARGET_MACHINE" in
+	aarch64*) # XXX different repo location
+		echo "repository=https://aleph.repo.plan10.org/current/aarch64" > \
+			${DESTDIR}/usr/share/pkginst.d/00-repository-main.conf
+		;;
+	*-musl) # XXX different repo location
+		echo "repository=https://aleph.repo.plan10.org/current/musl" > \
+			${DESTDIR}/usr/share/pkginst.d/00-repository-main.conf
+		;;
+	*)
+		echo "repository=https://aleph.repo.plan10.org/current" > \
+			${DESTDIR}/usr/share/pkginst.d/00-repository-main.conf
+		;;
+	esac
+	vlicense LICENSE
+	vlicense LICENSE.3RDPARTY
+}
+
+libpkginst_package() {
+	short_desc+=" - runtime library"
+	pkg_install() {
+		vmove "usr/lib/*.so.*"
+	}
+}
+libpkginst-devel_package() {
+	short_desc+=" - runtime library (development files)"
+	depends="${makedepends} libpkginst>=${version}_${revision}"
+	pkg_install() {
+		vmove usr/include
+		vmove "usr/lib/*.a"
+		vmove "usr/lib/*.so"
+		vmove usr/lib/pkgconfig
+	}
+}

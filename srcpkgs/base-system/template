@@ -1,0 +1,27 @@
+# Template file for 'base-system'
+pkgname=base-system
+reverts="0.113_1"
+version=0.112
+revision=6
+build_style=meta
+short_desc="Plan10 Linux base system meta package"
+maintainer="Enno Boland <gottox@plan10.org>"
+license="Public domain"
+homepage="https://www.plan10.org"
+
+depends="
+ base-files>=0.77 ncurses coreutils findutils diffutils libgcc
+ dash bash grep gzip file sed gawk less util-linux which tar man-pages
+ mdocml>=1.13.3 shadow e2fsprogs btrfs-progs xfsprogs f2fs-tools dosfstools
+ psmisc procps-ng tzdata pciutils usbutils iana-etc openssh dhcpcd
+ kbd iproute2 iputils iw wpa_supplicant pkginst nvi sudo wifi-firmware
+ plan10-artwork traceroute ethtool kmod acpid eudev runit-plan10"
+
+case "$PKGINST_TARGET_MACHINE" in
+	*-musl) depends+=" musl";;
+	*) depends+=" glibc-locales";;
+esac
+
+case "$PKGINST_TARGET_MACHINE" in
+	i686*|x86_64*|ppc*) depends+=" linux";;
+esac

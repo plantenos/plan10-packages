@@ -1,0 +1,18 @@
+# Template file for 'NetKeys'
+pkgname=NetKeys
+version=0.3
+revision=1
+build_style=go
+go_import_path="github.com/NetAuth/NetKeys"
+go_package="${go_import_path}/cmd/netkeys"
+hostmakedepends="git"
+short_desc="Key retrieval daemon for NetAuth"
+maintainer="Michael Aldridge <maldridge@plan10.org>"
+license="MIT"
+homepage="https://netauth.org"
+distfiles="https://github.com/NetAuth/NetKeys/archive/v$version.tar.gz"
+checksum=f6daf0390020c31ba33c4231df9190ce9d3b6a8373492debc98a797a31380679
+
+post_install() {
+	vlicense LICENSE
+}

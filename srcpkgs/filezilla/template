@@ -1,0 +1,25 @@
+# Template file for 'filezilla'
+pkgname=filezilla
+version=3.44.2
+revision=1
+build_style=gnu-configure
+configure_args="--disable-static --disable-manualupdatecheck --disable-autoupdatecheck
+ --with-wx-config=wx-config-gtk3"
+hostmakedepends="pkg-config"
+makedepends="gnutls-devel pugixml-devel dbus-devel libidn-devel sqlite-devel
+ gtk+3-devel wxWidgets-gtk3-devel xdg-utils libfilezilla-devel"
+depends="xdg-utils hicolor-icon-theme desktop-file-utils"
+short_desc="Fast and reliable FTP, FTPS and SFTP client"
+maintainer="Helmut Pozimski <helmut@pozimski.eu>"
+license="GPL-2.0-or-later"
+homepage="https://filezilla-project.org"
+changelog="https://svn.filezilla-project.org/filezilla/FileZilla3/trunk/NEWS?view=co"
+distfiles="https://download.filezilla-project.org/client/FileZilla_${version}_src.tar.bz2"
+checksum=5d4d20105859cee72be3ac171e844080f58031f5f96ee483bf86d6bfbc09deb6
+
+if [ "$CROSS_BUILD" ]; then
+	hostmakedepends+=" wxWidgets-gtk3-devel xdg-utils"
+	case "$PKGINST_TARGET_MACHINE" in
+		armv6*) makedepends+=" libatomic-devel" ;;
+	esac
+fi

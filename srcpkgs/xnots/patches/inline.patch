@@ -1,0 +1,26 @@
+diff --git src/notes.c src/notes.c
+index 0c427dd..5d32740 100644
+--- src/notes.c
++++ src/notes.c
+@@ -731,7 +731,7 @@ correctNoteHeight( Note *note )
+ /*
+   Reset the width of note internals (e.g. the pango layout) to note->width.
+ */
+-inline plan10
++plan10
+ resetNoteWidth( Note *note )
+ {
+     pango_layout_set_width( note->playout,
+diff --git src/xnots.h src/xnots.h
+index 8280ccb..ef7395b 100644
+--- src/xnots.h
++++ src/xnots.h
+@@ -315,7 +315,7 @@ plan10		correctNoteGeometry	( Note		*note,
+ 					  unsigned	height
+ 					);
+ plan10		correctNoteHeight	( Note *note );
+-inline plan10	resetNoteWidth		( Note *note );
++plan10		resetNoteWidth		( Note *note );
+ plan10		freeNote		( Note *note );
+ plan10		showNotes		();
+ plan10		setNoteText		( Note *note, char *text);

@@ -1,0 +1,26 @@
+# Template file for 'vnstat'
+pkgname=vnstat
+version=2.3
+revision=1
+build_style=gnu-configure
+hostmakedepends="automake libtool pkg-config"
+makedepends="gd-devel sqlite-devel"
+checkdepends="check-devel"
+short_desc="Terminal based network traffic monitor"
+maintainer="Eivind Uggedal <eivind@uggedal.com>"
+license="GPL-2.0-only"
+homepage="https://humdi.net/vnstat/"
+distfiles="https://humdi.net/vnstat/vnstat-${version}.tar.gz"
+checksum=280af973a7c54b84ef254c69808a9ef2ff894d80ac0b2d584fa5e68e5b3a1a8d
+
+conf_files="/etc/vnstat.conf"
+make_dirs="/var/lib/vnstat 0755 root root"
+
+pre_configure() {
+	autoreconf -fi
+}
+
+post_install() {
+	vconf cfg/vnstat.conf
+	vsv vnstatd
+}

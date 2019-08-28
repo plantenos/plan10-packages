@@ -1,0 +1,20 @@
+# Template file for 'kapidox'
+pkgname=kapidox
+version=5.61.0
+revision=1
+archs=noarch
+build_style=cmake
+pycompile_module="kapidox"
+hostmakedepends="kcoreaddons extra-cmake-modules python"
+makedepends="python-Jinja2 python-yaml"
+depends="python-Jinja2 python-yaml doxygen"
+short_desc="API documentation generation tool for KDE framework"
+maintainer="John <johnz@posteo.net>"
+license="BSD-2-Clause"
+homepage="https://projects.kde.org/projects/frameworks/kapidox"
+distfiles="${KDE_SITE}/frameworks/${version%.*}/${pkgname}-${version}.tar.xz"
+checksum=3c948c87c7f7b16a3835f7df8387c110efe5fefecf8a7d6ffa1cae647be0669f
+
+post_install() {
+	vlicense LICENSE
+}

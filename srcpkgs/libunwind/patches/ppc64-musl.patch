@@ -1,0 +1,114 @@
+--- src/ppc64/Ginit.c
++++ src/ppc64/Ginit.c
+@@ -51,7 +51,7 @@ uc_addr (ucontext_t *uc, int reg)
+     addr = &uc->uc_mcontext.gp_regs[reg - UNW_PPC64_R0];
+ 
+   else if ((unsigned) (reg - UNW_PPC64_F0) < 32)
+-    addr = &uc->uc_mcontext.fp_regs[reg - UNW_PPC64_F0];
++    addr = &(((double *)&uc->uc_mcontext.fp_regs)[reg - UNW_PPC64_F0]);
+ 
+   else if ((unsigned) (reg - UNW_PPC64_V0) < 32)
+     addr = (uc->uc_mcontext.v_regs == 0) ? NULL : &uc->uc_mcontext.v_regs->vrregs[reg - UNW_PPC64_V0][0];
+--- src/ppc64/ucontext_i.h
++++ src/ppc64/ucontext_i.h
+@@ -99,39 +99,39 @@ static vrregset_t dmy_vrregset;
+ #define UC_MCONTEXT_GREGS_DSISR ((plan10 *)&dmy_ctxt.uc_mcontext.gp_regs[DSISR_IDX] - (plan10 *)&dmy_ctxt)
+ #define UC_MCONTEXT_GREGS_RESULT ((plan10 *)&dmy_ctxt.uc_mcontext.gp_regs[RESULT_IDX] - (plan10 *)&dmy_ctxt)
+ 
+-#define UC_MCONTEXT_FREGS_R0 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[0] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R1 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[1] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R2 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[2] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R3 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[3] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R4 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[4] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R5 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[5] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R6 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[6] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R7 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[7] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R8 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[8] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R9 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[9] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R10 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[10] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R11 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[11] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R12 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[12] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R13 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[13] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R14 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[14] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R15 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[15] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R16 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[16] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R17 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[17] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R18 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[18] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R19 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[19] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R20 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[20] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R21 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[21] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R22 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[22] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R23 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[23] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R24 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[24] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R25 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[25] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R26 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[26] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R27 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[27] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R28 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[28] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R29 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[29] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R30 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[30] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_R31 ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[31] - (plan10 *)&dmy_ctxt)
+-#define UC_MCONTEXT_FREGS_FPSCR ((plan10 *)&dmy_ctxt.uc_mcontext.fp_regs[32] - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R0 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[0]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R1 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[1]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R2 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[2]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R3 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[3]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R4 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[4]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R5 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[5]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R6 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[6]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R7 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[7]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R8 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[8]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R9 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[9]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R10 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[10]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R11 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[11]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R12 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[12]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R13 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[13]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R14 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[14]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R15 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[15]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R16 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[16]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R17 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[17]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R18 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[18]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R19 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[19]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R20 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[20]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R21 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[21]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R22 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[22]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R23 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[23]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R24 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[24]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R25 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[25]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R26 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[26]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R27 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[27]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R28 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[28]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R29 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[29]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R30 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[30]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_R31 ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[31]) - (plan10 *)&dmy_ctxt)
++#define UC_MCONTEXT_FREGS_FPSCR ((plan10 *)&(((double *)&dmy_ctxt.uc_mcontext.fp_regs)[32]) - (plan10 *)&dmy_ctxt)
+ 
+ #define UC_MCONTEXT_V_REGS ((plan10 *)&dmy_ctxt.uc_mcontext.v_regs - (plan10 *)&dmy_ctxt)
+ 
+--- src/ptrace/_UPT_internal.h
++++ src/ptrace/_UPT_internal.h
+@@ -37,7 +37,14 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
+ #include <sys/ptrace.h>
+ #endif
+ #ifdef HAVE_SYS_PROCFS_H
++#if !defined(__GLIBC__) && defined(__powerpc__)
++/* nasty hack to prevent conflict with asm/ptrace.h */
++#define pt_regs musl_pt_regs
+ #include <sys/procfs.h>
++#undef pt_regs
++#else
++#include <sys/procfs.h>
++#endif
+ #endif
+ 
+ #include <errno.h>
+--- src/ptrace/_UPT_reg_offset.c
++++ src/ptrace/_UPT_reg_offset.c
+@@ -32,6 +32,8 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  */
+ # include <asm/ptrace_offsets.h>
+ #endif
+ 
++#include <asm/ptrace.h>
++
+ const int _UPT_reg_offset[UNW_REG_LAST + 1] =
+   {
+ #ifdef HAVE_ASM_PTRACE_OFFSETS_H

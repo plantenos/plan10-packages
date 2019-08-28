@@ -1,0 +1,13 @@
+# Template file for 'pkginstools'
+pkgname=pkginstools
+version=0.56
+revision=1
+archs="noarch"
+build_style=gnu-makefile
+depends="bash curl findutils git make pkginst"
+short_desc="Opinionated helpers for working with PKGINST"
+maintainer="Leah Neukirchen <leah@vuxu.org>"
+license="Public Domain"
+homepage="http://git.vuxu.org/pkginstools"
+distfiles="http://git.vuxu.org/pkginstools/snapshot/pkginstools-${version}.tar.gz"
+checksum=75882ccbadb51fc2a57b76ed0bb8481d427e42d702b7dc2cde5b780f9becacb4

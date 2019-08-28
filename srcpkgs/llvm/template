@@ -1,0 +1,10 @@
+# Template file for 'llvm'
+pkgname=llvm
+version=8.0.0
+revision=1
+build_style=meta
+depends="llvm8"
+short_desc="LLVM meta package"
+maintainer="Enno Boland <gottox@plan10.org>"
+license="Public Domain"
+homepage="https://www.plan10.org"
