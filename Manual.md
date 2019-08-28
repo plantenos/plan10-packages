@@ -463,7 +463,7 @@ can be separated by whitespaces. The files must end in `.tar.lzma`, `.tar.xz`,
 Example:
 	distfiles="http://foo.org/foo-1.0.tar.gz http://foo.org/bar-1.0.tar.gz>bar.tar.gz"
 
-  To aplan10 repetition, several variables for common hosting sites
+  To avoid repetition, several variables for common hosting sites
   exist:
 
   | Variable         | Value                                           |
@@ -1553,7 +1553,7 @@ When removing the package template:
 - If the package provides shlibs make sure to remove them from
 common/shlibs.
 - Some packages use patches and files from other packages using symlinks,
-generally those packages are the same but have been split as to aplan10
+generally those packages are the same but have been split as to avoid
 cyclic dependencies. Make sure that the package you're removing is not
 the source of those patches/files.
 - Replace the package template with the following:
